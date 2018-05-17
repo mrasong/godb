@@ -281,11 +281,11 @@ func (db *Database) Delete() (int64, error) {
 	return rs.RowsAffected()
 }
 
-func (db *Database) Count() int64 {
+func (db *Database) Count() (int64, error) {
 	// db
 	conn, err := db.Fields("COUNT(*)").buildSelect().connect()
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	defer conn.Close()
 
@@ -293,15 +293,16 @@ func (db *Database) Count() int64 {
 	// query
 	err = conn.QueryRow(db.Vars.Query, db.Vars.Bind...).Scan(&count)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 
-	return count
+	return count, nil
 }
 
 func (db *Database) Find() ([]interface{}, error) {
 	return db.FindAll()
 }
+
 func (db *Database) FindAll() ([]interface{}, error) {
 	// list
 	list := []interface{}{}
@@ -352,6 +353,10 @@ func (db *Database) FindAll() ([]interface{}, error) {
 	return list, nil
 }
 
+func (db *Database) FindFirst() (map[string]interface{}, error) {
+	return db.FindOne()
+}
+
 func (db *Database) FindOne() (map[string]interface{}, error) {
 	// db
 	conn, err := db.buildSelect().connect()
@@ -397,12 +402,4 @@ func (db *Database) FindOne() (map[string]interface{}, error) {
 	}
 
 	return rs, nil
-}
-
-func (db *Database) FindFirst() (map[string]interface{}, error) {
-	return db.FindOne()
-}
-
-func (db *Database) findFirst() (map[string]interface{}, error) {
-	return db.FindOne()
 }

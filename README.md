@@ -1,11 +1,10 @@
 ## simple database tool for go 
 
+Support 
 
-support 
-
- - mysql
- - postgresql
- - sqlite3
+ - mysql  [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+ - postgresql [github.com/lib/pq](https://github.com/lib/pq)
+ - sqlite3 [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
 
 
@@ -37,39 +36,125 @@ var Db db.Database = db.Database{Driver: DB_DRIVER, Dsn: DB_DSN}
 ```
 
 
-### Query (*sql.Rows, error)
+### Functions
 
 ```
-	query, err := Db.Query(`CREATE TABLE test ...`, nil)
-	query2, err := Db.Query(`SELECT * FROM test WHERE id = ? or name = ?`, bind{1, "go"})
+func (db *Database) Count() (int64, error)
+
+func (db *Database) Delete() (int64, error)
+
+func (db *Database) Fields(fields string) *Database
+
+func (db *Database) Find() ([]interface{}, error)
+
+func (db *Database) FindAll() ([]interface{}, error)
+
+func (db *Database) FindFirst() (map[string]interface{}, error)
+
+func (db *Database) FindOne() (map[string]interface{}, error)
+
+func (db *Database) From(table string) *Database
+
+func (db *Database) Insert(data map[string]interface{}) (int64, error)
+
+func (db *Database) Limit(limit int64) *Database
+
+func (db *Database) Offset(offset int64) *Database
+
+func (db *Database) Order(order string) *Database
+
+func (db *Database) Query(sql string, bind []interface{}) (*sql.Rows, error)
+
+func (db *Database) Update(data map[string]interface{}) (int64, error)
+
+func (db *Database) Where(where string, bind []interface{}) *Database
 ```
 
 
-### FindOne (map[string]interface{}, error)
+### Example
 
 ```
-	findOne, err := Db.From("test").
-		// Fields("id,name").
-		Where("id = ? AND name = ?", bind{1, "go"}).
-		FindOne()
-```
+package main
 
+import (
+	"encoding/json"
+	"fmt"
+	"time"
 
-### FindAll ([]interface{}, error)
+	"github.com/mrasong/godb"
+)
 
-```
+type bind []interface{}
+type data map[string]interface{}
+
+const (
+	DB_DRIVER = "mysql"
+	DB_DSN    = "user:password@tcp(host:port)/database?charset=utf8mb4"
+
+	// DB_DRIVER = "postgres"
+	// DB_DSN    = "postgresql://localhost/go"
+
+	// DB_DRIVER = "sqlite3"
+	// DB_DSN    = "./sqlite3.db"
+)
+
+var Db db.Database = db.Database{Driver: DB_DRIVER, Dsn: DB_DSN}
+
+// var Db = db.DB(DB_DRIVER, DB_DSN)
+
+func JSON(data interface{}) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("json error:", data)
+		return
+	}
+
+	fmt.Println(string(b))
+	return
+}
+
+func FindAll() {
 	findAll, err := Db.From("test").
 		// Fields("id,name").
 		Where("name like ?", bind{"%go%"}).
 		Order("id desc").
 		Limit(10).
 		FindAll()
-```
 
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(findAll)
+}
 
-### Insert (int64, error)
+func FindOne() {
+	findOne, err := Db.From("test").
+		// Fields("id,name").
+		Where("id = ?", bind{1}).
+		FindOne()
 
-```
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(findOne)
+}
+
+func Delete() {
+	delete, err := Db.
+		From("test").
+		Where("id = ?", bind{1}).
+		Delete()
+
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(delete)
+}
+
+func Insert() {
 	insert, err := Db.
 		From("test").
 		Insert(data{
@@ -77,30 +162,58 @@ var Db db.Database = db.Database{Driver: DB_DRIVER, Dsn: DB_DSN}
 			"name":       "hi go",
 			"text":       `this should be a long text`,
 		})
-```
 
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(insert)
+}
 
-### Update (int64, error)
-
-```
+func Update() {
 	update, err := Db.
 		From("test").
 		Where("id = ?", bind{1}).
 		Update(data{
 			"created_at": time.Now().Unix(),
-			"name":       fmt.Sprintf("the %d", i),
+			"name":       "hello go",
 			"text":       `uint is an "unsigned" integer type that is at least '32' bits in size. It is a distinct type, however, and not an alias for, say, uint32.`,
 		})
-```
 
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(update)
+}
 
-### Delete (int64, error)
-
-```
-	delete, err := Db.
+func Count() {
+	count := Db.
 		From("test").
-		Where("id = ?", bind{i}).
-		Delete()
+		Where("id > ?", bind{1}).
+		Count()
+
+	JSON(count)
+}
+
+func Query() {
+	query, err := Db.Query(`CREATE TABLE test ...`, nil)
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(query)
+
+	query2, err := Db.Query(`select * from test where id = ?`, bind{1})
+	if err != nil {
+		JSON(err)
+		return
+	}
+	JSON(query2)
+}
+
+func main() {
+	FindAll()
+}
+
 ```
-
-
