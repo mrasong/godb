@@ -77,7 +77,7 @@ func (db *Database) Limit(limit int64) *Database {
 // offset
 func (db *Database) Offset(offset int64) *Database {
 	if offset > 0 {
-		db.Vars.Offset = fmt.Sprintf("LIMIT %d", offset)
+		db.Vars.Offset = fmt.Sprintf("OFFSET %d", offset)
 	}
 	return db
 }
@@ -283,7 +283,7 @@ func (db *Database) Delete() (int64, error) {
 
 func (db *Database) Count() (int64, error) {
 	// db
-	conn, err := db.Fields("COUNT(*)").buildSelect().connect()
+	conn, err := db.Fields("COUNT(*) as count").buildSelect().connect()
 	if err != nil {
 		return 0, err
 	}
