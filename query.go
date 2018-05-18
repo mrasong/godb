@@ -30,7 +30,8 @@ func (db *Database) reset() *Database {
 	return db
 }
 
-// from table
+// From("table")
+// From("table as a")
 func (db *Database) From(table string) *Database {
 	db.reset()
 	db.Vars.Table = table
@@ -38,7 +39,41 @@ func (db *Database) From(table string) *Database {
 	return db
 }
 
-// fields
+// Join("table b", "LEFT")
+// Join("table b", "left")
+// Join("table c", "right")
+// Join("table d", "Inner")
+func (db *Database) Join(table string, join string) *Database {
+	if table == "" {
+		return db
+	}
+
+	join = strings.ToUpper(join)
+	switch join {
+	case "LEFT", "RIGHT", "INNER":
+		join = join
+
+	default:
+		join = ""
+
+	}
+	db.Vars.Join = fmt.Sprintf("%s JION %s", join, table)
+
+	return db
+}
+
+// On("table.kid = join.id")
+// On("a.uid = user.id")
+func (db *Database) On(condition string) *Database {
+	if condition != "" {
+		db.Vars.On = fmt.Sprintf("ON %s", condition)
+	}
+	return db
+}
+
+// Fields("id, name, age")
+// Fields("count(*) as count")
+// Fields("user.id, company.name")
 func (db *Database) Fields(fields string) *Database {
 	db.Vars.Fields = fields
 	if db.Vars.Fields == "" {
@@ -48,7 +83,11 @@ func (db *Database) Fields(fields string) *Database {
 	return db
 }
 
-// where
+// type Bind []interface{}
+// Where("id = ?", Bind{1})
+// Where("id = ? and name = ?", Bind{1, "go"})
+// Where("name like ?", Bind{"%go%"})
+// Where("a.id = ? OR b.name = ?", Bind{1, "go"})
 func (db *Database) Where(where string, bind []interface{}) *Database {
 	db.Vars.Where = append(db.Vars.Where, where)
 	db.Vars.Bind = append(db.Vars.Bind, bind...)
@@ -56,7 +95,26 @@ func (db *Database) Where(where string, bind []interface{}) *Database {
 	return db
 }
 
-// order
+// Group("id")
+func (db *Database) Group(group string) *Database {
+	if group != "" {
+		db.Vars.Group = fmt.Sprintf("GROUP BY %s", group)
+	}
+
+	return db
+}
+
+// Having("id > 1")
+func (db *Database) Having(having string) *Database {
+	if having != "" {
+		db.Vars.Having = fmt.Sprintf("HAVING %s", having)
+	}
+
+	return db
+}
+
+// Order("id DESC")
+// Order("created_at DESC, id DESC")
 func (db *Database) Order(order string) *Database {
 	if order != "" {
 		db.Vars.Order = fmt.Sprintf("ORDER BY %s", order)
@@ -65,7 +123,7 @@ func (db *Database) Order(order string) *Database {
 	return db
 }
 
-// limit
+// Limit(3)
 func (db *Database) Limit(limit int64) *Database {
 	if limit > 0 {
 		db.Vars.Limit = fmt.Sprintf("LIMIT %d", limit)
@@ -74,7 +132,7 @@ func (db *Database) Limit(limit int64) *Database {
 	return db
 }
 
-// offset
+// Offset(100)
 func (db *Database) Offset(offset int64) *Database {
 	if offset > 0 {
 		db.Vars.Offset = fmt.Sprintf("OFFSET %d", offset)
@@ -93,7 +151,11 @@ func filter(value interface{}) string {
 		v = fmt.Sprintf("%f", value)
 
 	case string:
-		v = fmt.Sprintf("%s", strconv.Quote(fmt.Sprintf("%s", value)))
+		v = strconv.Quote(fmt.Sprintf("%s", value))
+
+	case []byte:
+		fmt.Println("byte")
+		v = string(value.([]byte)[:])
 	}
 
 	return v
@@ -114,6 +176,10 @@ func (db *Database) buildSelect() *Database {
 		db.Vars.Fields,
 		"FROM",
 		db.Vars.Table,
+		db.Vars.Join,
+		db.Vars.On,
+		db.Vars.Group,
+		db.Vars.Having,
 		where,
 		db.Vars.Order,
 		db.Vars.Limit,
@@ -124,6 +190,7 @@ func (db *Database) buildSelect() *Database {
 }
 
 func (db *Database) buildInsert(data map[string]interface{}) *Database {
+	// k => v
 	var fields []string
 	var values []string
 
@@ -146,6 +213,7 @@ func (db *Database) buildInsert(data map[string]interface{}) *Database {
 }
 
 func (db *Database) buildUpdate(data map[string]interface{}) *Database {
+	// update data
 	var values []string
 
 	for k, v := range data {
@@ -172,6 +240,7 @@ func (db *Database) buildUpdate(data map[string]interface{}) *Database {
 }
 
 func (db *Database) buildDelete() *Database {
+	// where
 	where := ""
 	if len(db.Vars.Where) > 0 {
 		where = fmt.Sprintf("WHERE %s", strings.Join(db.Vars.Where, " AND "))
@@ -190,6 +259,7 @@ func (db *Database) buildDelete() *Database {
 }
 
 func (db *Database) Query(sql string, bind []interface{}) (*sql.Rows, error) {
+	// reset vars
 	db.reset()
 	db.Vars.Query = sql
 	db.Vars.Bind = append(db.Vars.Bind, bind...)
@@ -299,13 +369,14 @@ func (db *Database) Count() (int64, error) {
 	return count, nil
 }
 
-func (db *Database) Find() ([]interface{}, error) {
+func (db *Database) Find() ([]map[string]interface{}, error) {
+	// find all
 	return db.FindAll()
 }
 
-func (db *Database) FindAll() ([]interface{}, error) {
+func (db *Database) FindAll() ([]map[string]interface{}, error) {
 	// list
-	list := []interface{}{}
+	list := []map[string]interface{}{}
 
 	// db
 	conn, err := db.buildSelect().connect()
@@ -330,8 +401,8 @@ func (db *Database) FindAll() ([]interface{}, error) {
 	// fields and values interface
 	fields := make([]interface{}, len(columns))
 	values := make([]sql.RawBytes, len(columns))
-	for i := range fields {
-		fields[i] = &values[i]
+	for k, _ := range fields {
+		fields[k] = &values[k]
 	}
 
 	// list
@@ -354,6 +425,7 @@ func (db *Database) FindAll() ([]interface{}, error) {
 }
 
 func (db *Database) FindFirst() (map[string]interface{}, error) {
+	// find one
 	return db.FindOne()
 }
 
@@ -380,7 +452,7 @@ func (db *Database) FindOne() (map[string]interface{}, error) {
 
 	// fields and values interface
 	fields := make([]interface{}, len(columns))
-	values := make([]string, len(columns))
+	values := make([]interface{}, len(columns))
 	for i := range fields {
 		fields[i] = &values[i]
 	}
@@ -394,8 +466,8 @@ func (db *Database) FindOne() (map[string]interface{}, error) {
 	// rs
 	rs := make(map[string]interface{})
 	for k, v := range values {
-		if intval, err := strconv.Atoi(v); err == nil {
-			rs[columns[k]] = intval
+		if _v, ok := v.([]byte); ok {
+			rs[columns[k]] = string(_v[:])
 		} else {
 			rs[columns[k]] = v
 		}

@@ -1,8 +1,12 @@
 package db
 
 type _vars struct {
-	Table string
-	Query string
+	Table  string
+	Join   string
+	On     string
+	Group  string
+	Having string
+	Query  string
 
 	Fields string
 	Where  []string

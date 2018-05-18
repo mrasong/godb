@@ -44,30 +44,60 @@ func (db *Database) Count() (int64, error)
 func (db *Database) Delete() (int64, error)
 
 func (db *Database) Fields(fields string) *Database
+    Fields("id, name, age") 
+    Fields("count(*) as count") 
+    Fields("user.id, company.name")
 
-func (db *Database) Find() ([]interface{}, error)
+func (db *Database) Find() ([]map[string]interface{}, error)
 
-func (db *Database) FindAll() ([]interface{}, error)
+func (db *Database) FindAll() ([]map[string]interface{}, error)
 
 func (db *Database) FindFirst() (map[string]interface{}, error)
 
 func (db *Database) FindOne() (map[string]interface{}, error)
 
 func (db *Database) From(table string) *Database
+    From("table") 
+    From("table as a")
+
+func (db *Database) Group(group string) *Database
+    Group("id")
+
+func (db *Database) Having(having string) *Database
+    Having("id > 1")
 
 func (db *Database) Insert(data map[string]interface{}) (int64, error)
 
+func (db *Database) Join(table string, join string) *Database
+    Join("table b", "LEFT") 
+    Join("table b", "left") 
+    Join("table c", "right")
+    Join("table d", "Inner")
+
 func (db *Database) Limit(limit int64) *Database
+    Limit(3)
 
 func (db *Database) Offset(offset int64) *Database
+    Offset(100)
+
+func (db *Database) On(condition string) *Database
+    On("table.kid = join.id") 
+    On("a.uid = user.id")
 
 func (db *Database) Order(order string) *Database
+    Order("id DESC") 
+    Order("created_at DESC, id DESC")
 
 func (db *Database) Query(sql string, bind []interface{}) (*sql.Rows, error)
 
 func (db *Database) Update(data map[string]interface{}) (int64, error)
 
 func (db *Database) Where(where string, bind []interface{}) *Database
+    type Bind []interface{} 
+    Where("id = ?", Bind{1}) 
+    Where("id = ? and name = ?", Bind{1, "go"}) 
+    Where("name like ?", Bind{"%go%"}) 
+    Where("a.id = ? OR b.name = ?", Bind{1, "go"})
 ```
 
 
