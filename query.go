@@ -57,7 +57,7 @@ func (db *Database) Join(table string, join string) *Database {
 		join = ""
 
 	}
-	db.Vars.Join = fmt.Sprintf("%s JION %s", join, table)
+	db.Vars.Join = fmt.Sprintf("%s JOIN %s", join, table)
 
 	return db
 }
