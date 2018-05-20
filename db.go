@@ -26,6 +26,6 @@ type Database struct {
 	Vars _vars
 }
 
-func DB(driver string, dsn string) Database {
+func New(driver string, dsn string) Database {
 	return Database{Driver: driver, Dsn: dsn}
 }

@@ -31,7 +31,7 @@ const (
 
 
 var Db db.Database = db.Database{Driver: DB_DRIVER, Dsn: DB_DSN}
-// var Db := db.DB(DB_DRIVER, DB_DSN)
+// var Db := db.New(DB_DRIVER, DB_DSN)
 
 ```
 
@@ -87,6 +87,10 @@ func (db *Database) On(condition string) *Database
 func (db *Database) Order(order string) *Database
     Order("id DESC") 
     Order("created_at DESC, id DESC")
+
+func (db *Database) SetField(field string, value interface{}) (int64, error)
+    SetField("views", 10086)
+    SetField("name", "go")
 
 func (db *Database) Query(sql string, bind []interface{}) (*sql.Rows, error)
 

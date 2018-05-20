@@ -328,6 +328,31 @@ func (db *Database) Update(data map[string]interface{}) (int64, error) {
 	return rs.RowsAffected()
 }
 
+func (db *Database) SetField(field string, value interface{}) (int64, error) {
+	// db
+	conn, err := db.buildUpdate(map[string]interface{}{
+		field: value,
+	}).connect()
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	// get list
+	update, err := conn.Prepare(db.Vars.Query)
+	if err != nil {
+		return 0, err
+	}
+	defer update.Close()
+
+	rs, err := update.Exec(db.Vars.Bind...)
+	if err != nil {
+		return 0, err
+	}
+
+	return rs.RowsAffected()
+}
+
 func (db *Database) Delete() (int64, error) {
 	// db
 	conn, err := db.buildDelete().connect()
@@ -366,7 +391,7 @@ func (db *Database) Count() (int64, error) {
 		return 0, err
 	}
 
-	return count, nil
+	return int64(count), nil
 }
 
 func (db *Database) Find() ([]map[string]interface{}, error) {
