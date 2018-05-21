@@ -11,7 +11,7 @@ Support
 ### Instantiation 
 
 
-```
+```go
 import(
 	"github.com/mrasong/godb"
 )
@@ -38,7 +38,7 @@ var Db db.Database = db.Database{Driver: DB_DRIVER, Dsn: DB_DSN}
 
 ### Functions
 
-```
+```go
 func (db *Database) Count() (int64, error)
 
 func (db *Database) Delete() (int64, error)
@@ -107,7 +107,7 @@ func (db *Database) Where(where string, bind []interface{}) *Database
 
 ### Example
 
-```
+```go
 package main
 
 import (

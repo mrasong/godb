@@ -8,9 +8,11 @@ type _vars struct {
 	Having string
 	Query  string
 
-	Fields string
-	Where  []string
-	Bind   []interface{}
+	Fields     string
+	Where      []string
+	Bind       []interface{}
+	BindInsert []interface{}
+	BindUpdate []interface{}
 
 	Order  string
 	Limit  string

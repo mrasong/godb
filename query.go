@@ -140,26 +140,26 @@ func (db *Database) Offset(offset int64) *Database {
 	return db
 }
 
-func filter(value interface{}) string {
-	v := ""
-	switch value.(type) {
-	case int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64:
-		v = fmt.Sprintf("%d", value)
+// func filter(value interface{}) string {
+// 	v := ""
+// 	switch value.(type) {
+// 	case int, int8, int16, int32, int64,
+// 		uint, uint8, uint16, uint32, uint64:
+// 		v = fmt.Sprintf("%d", value)
 
-	case float32, float64:
-		v = fmt.Sprintf("%f", value)
+// 	case float32, float64:
+// 		v = fmt.Sprintf("%f", value)
 
-	case string:
-		v = strconv.Quote(fmt.Sprintf("%s", value))
+// 	case string:
+// 		v = strconv.Quote(fmt.Sprintf("%s", value))
 
-	case []byte:
-		fmt.Println("byte")
-		v = string(value.([]byte)[:])
-	}
+// 	case []byte:
+// 		fmt.Println("byte")
+// 		v = string(value.([]byte)[:])
+// 	}
 
-	return v
-}
+// 	return v
+// }
 
 func (db *Database) buildSelect() *Database {
 	if db.Vars.Fields == "" {
@@ -196,7 +196,9 @@ func (db *Database) buildInsert(data map[string]interface{}) *Database {
 
 	for k, v := range data {
 		fields = append(fields, k)
-		values = append(values, filter(v))
+		values = append(values, "?")
+		// db.Vars.Bind = append(db.Vars.Bind, filter(v))
+		db.Vars.BindInsert = append(db.Vars.BindInsert, v)
 	}
 
 	db.Vars.Query = strings.Join([]string{
@@ -214,10 +216,13 @@ func (db *Database) buildInsert(data map[string]interface{}) *Database {
 
 func (db *Database) buildUpdate(data map[string]interface{}) *Database {
 	// update data
-	var values []string
+	var fields []string
+	var values []interface{}
 
 	for k, v := range data {
-		values = append(values, fmt.Sprintf("%s = %s", k, filter(v)))
+		fields = append(fields, fmt.Sprintf("%s = ?", k))
+		values = append(values, v)
+		// db.Vars.Bind = append(db.Vars.Bind, filter(v))
 	}
 
 	where := ""
@@ -225,11 +230,14 @@ func (db *Database) buildUpdate(data map[string]interface{}) *Database {
 		where = fmt.Sprintf("WHERE %s", strings.Join(db.Vars.Where, " AND "))
 	}
 
+	// merge values and bind
+	db.Vars.BindUpdate = append(values, db.Vars.Bind...)
+
 	db.Vars.Query = strings.Join([]string{
 		"UPDATE",
 		db.Vars.Table,
 		"SET",
-		strings.Join(values, ", "),
+		strings.Join(fields, ", "),
 		where,
 		db.Vars.Order,
 		db.Vars.Limit,
@@ -297,7 +305,7 @@ func (db *Database) Insert(data map[string]interface{}) (int64, error) {
 	defer insert.Close()
 
 	// exec query
-	rs, err := insert.Exec()
+	rs, err := insert.Exec(db.Vars.BindInsert...)
 	if err != nil {
 		return 0, err
 	}
@@ -320,7 +328,7 @@ func (db *Database) Update(data map[string]interface{}) (int64, error) {
 	}
 	defer update.Close()
 
-	rs, err := update.Exec(db.Vars.Bind...)
+	rs, err := update.Exec(db.Vars.BindUpdate...)
 	if err != nil {
 		return 0, err
 	}
@@ -345,7 +353,7 @@ func (db *Database) SetField(field string, value interface{}) (int64, error) {
 	}
 	defer update.Close()
 
-	rs, err := update.Exec(db.Vars.Bind...)
+	rs, err := update.Exec(db.Vars.BindUpdate...)
 	if err != nil {
 		return 0, err
 	}
