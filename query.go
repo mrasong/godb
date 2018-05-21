@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"database/sql"
